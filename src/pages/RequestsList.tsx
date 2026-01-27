@@ -60,12 +60,12 @@ export default function RequestsList() {
               const summary = computeSummary(req.stageName, req.scheduleDate)
               return (
                 <li key={req.id} className="px-4 py-3">
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div className="min-w-0 flex-1">
                       <p className="truncate font-medium text-gray-900">{req.name}</p>
                       <p className="text-sm text-gray-600">Equipo: {req.teamName}</p>
                     </div>
-                    <div className="ml-4 flex items-center gap-3">
+                    <div className="flex items-center gap-3">
                       <Badge variant={priorityVariant}>
                         <div className="flex gap-0.5">
                           {Array.from({ length: req.priority }).map((_, i) => (
@@ -103,7 +103,7 @@ export default function RequestsList() {
       </div>
 
       <Dialog open={!!selected} onOpenChange={(o) => !o && setSelected(null)}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-[500px] w-[95vw] rounded-lg">
           <DialogHeader>
             <DialogTitle>{selected?.name}</DialogTitle>
           </DialogHeader>

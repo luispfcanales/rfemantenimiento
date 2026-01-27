@@ -41,7 +41,7 @@ export default function NavBar() {
             className="gap-2 text-gray-600 hover:text-gray-900"
           >
             <RefreshCw className="h-4 w-4" />
-            Actualizar
+            <span className="hidden sm:inline">Actualizar</span>
           </Button>
         </nav>
       </div>
