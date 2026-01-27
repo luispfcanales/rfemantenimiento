@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { fetchRequests } from '../lib/api'
 import type { RequestItem } from '../lib/api'
-import { Eye } from 'lucide-react'
+import { Eye, Star } from 'lucide-react'
 import { Badge } from '../components/ui/badge'
 import { Button } from '../components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog'
@@ -60,7 +60,13 @@ export default function RequestsList() {
                       <p className="text-sm text-gray-600">Equipo: {req.teamName}</p>
                     </div>
                     <div className="ml-4 flex items-center gap-3">
-                      <Badge variant={priorityVariant}>Prioridad {req.priority}</Badge>
+                      <Badge variant={priorityVariant}>
+                        <div className="flex gap-0.5">
+                          {Array.from({ length: req.priority }).map((_, i) => (
+                            <Star key={i} className="h-3 w-3 fill-current" />
+                          ))}
+                        </div>
+                      </Badge>
                       <Badge>{req.stageName}</Badge>
                       <Button
                         variant="secondary"
@@ -116,7 +122,13 @@ export default function RequestsList() {
                 </div>
                 <div>
                   <p className="font-medium">Prioridad</p>
-                  <Badge variant={priorityVariant(selected.priority)}>Prioridad {selected.priority}</Badge>
+                  <Badge variant={priorityVariant(selected.priority)}>
+                    <div className="flex gap-0.5">
+                      {Array.from({ length: selected.priority }).map((_, i) => (
+                        <Star key={i} className="h-3 w-3 fill-current" />
+                      ))}
+                    </div>
+                  </Badge>
                 </div>
               </div>
               {selected.scheduleDate && (
