@@ -13,23 +13,29 @@ export default function RequestsList() {
   const [error, setError] = useState<string | null>(null)
   const [selected, setSelected] = useState<RequestItem | null>(null)
 
-  useEffect(() => {
-    let mounted = true
+  const loadData = () => {
+    setLoading(true)
     fetchRequests()
       .then((data) => {
-        if (mounted) {
-          setItems(data)
-          setError(null)
-        }
+        setItems(data)
+        setError(null)
       })
       .catch((e) => {
-        if (mounted) setError(e.message ?? 'Error al cargar datos')
+        setError(e.message ?? 'Error al cargar datos')
       })
       .finally(() => {
-        if (mounted) setLoading(false)
+        setLoading(false)
       })
+  }
+
+  useEffect(() => {
+    loadData()
+
+    const handleRefresh = () => loadData()
+    window.addEventListener('refresh-requests', handleRefresh)
+
     return () => {
-      mounted = false
+      window.removeEventListener('refresh-requests', handleRefresh)
     }
   }, [])
 
