@@ -11,6 +11,65 @@ import RequestDetail from './RequestDetail'
 
 type ViewMode = 'list' | 'grid'
 
+const getInitials = (name: string) => {
+  if (!name) return '??'
+  return name.split(' ').filter(Boolean).map(n => n[0]).join('').slice(0, 2).toUpperCase()
+}
+
+function MobileInboxItem({ item, onClick, progressColor }: { item: RequestItem; onClick: () => void; progressColor: string }) {
+  const initials = getInitials(item.teamName || item.name)
+  const colors = [
+    'bg-blue-500 text-white',
+    'bg-emerald-500 text-white',
+    'bg-amber-500 text-white',
+    'bg-purple-500 text-white',
+    'bg-pink-500 text-white',
+    'bg-cyan-500 text-white'
+  ]
+  const colorIndex = (item.teamId || 0) % colors.length
+  const avatarBg = colors[colorIndex]
+
+  return (
+    <div
+      onClick={onClick}
+      className="flex items-start gap-4 p-5 border-b border-gray-50 active:bg-gray-50 transition-colors relative"
+    >
+      {(item.progress ?? 0) > 90 && (
+        <div className="absolute left-1.5 top-1/2 -translate-y-1/2 w-1.5 h-1.5 bg-blue-500 rounded-full shadow-[0_0_8px_rgba(59,130,246,0.8)]" />
+      )}
+      <div className={`h-12 w-12 rounded-full flex items-center justify-center font-black text-sm shadow-lg flex-shrink-0 ${avatarBg}`}>
+        {initials}
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex justify-between items-start mb-1">
+          <h4 className="text-[16px] font-black text-gray-900 truncate tracking-tight">{item.name}</h4>
+          <span className="text-[11px] font-bold text-gray-400 whitespace-nowrap ml-2 font-mono">
+            {item.scheduleDate ? item.scheduleDate.split(' ')[0].split('-').slice(1).reverse().join('/') : '---'}
+          </span>
+        </div>
+        <p className="text-[13px] font-bold text-gray-500 truncate mb-1">
+          {item.equipmentName || 'Sin equipo'}
+        </p>
+        <div className="flex items-center justify-between">
+          <p className="text-[12px] text-gray-400 truncate flex-1">
+            {item.teamName} • Escalamiento {item.priority}
+          </p>
+          <div className="flex items-center gap-2">
+            <div className="flex text-amber-400 space-x-0.5">
+              {[...Array(item.priority)].map((_, i) => (
+                <Star key={i} className="h-2.5 w-2.5 fill-current" />
+              ))}
+            </div>
+            <span className={`text-[11px] font-black ${progressColor}`}>
+              {item.progress ?? 0}%
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function RequestsList() {
   const [items, setItems] = useState<RequestItem[]>([])
   const [loading, setLoading] = useState(true)
@@ -176,7 +235,18 @@ export default function RequestsList() {
 
   return (
     <div className="space-y-8 animate-in fade-in duration-700">
-      <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-6 border-b border-gray-100">
+      <header className="md:hidden flex flex-col gap-4 mb-4 px-5">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-full bg-emerald-500 flex items-center justify-center text-white font-black text-sm shadow-inner shadow-black/10">
+              L
+            </div>
+            <h1 className="text-2xl font-black text-gray-900 tracking-tight">Bandeja de entrada</h1>
+          </div>
+        </div>
+      </header>
+
+      <header className="hidden md:flex flex-col md:flex-row md:items-end justify-between gap-6 pb-6 border-b border-gray-100">
         <div className="space-y-1">
           <h1 className="text-3xl font-black text-gray-900 tracking-tight">Mantenimiento</h1>
           <p className="text-gray-500 text-sm font-medium flex items-center gap-2">
@@ -229,7 +299,21 @@ export default function RequestsList() {
         </div>
       </header>
 
-      <div className={`transition-all duration-700 ${isRefreshing ? 'blur-sm opacity-60 scale-[0.99] pointer-events-none' : 'blur-0 opacity-100 scale-100'}`}>
+      {/* Mobile Inbox View - Only visible on small screens */}
+      <div className="md:hidden">
+        <div className="bg-white border-y border-gray-100 overflow-hidden divide-y divide-gray-50 mb-8">
+          {filteredItems.map((item) => (
+            <MobileInboxItem
+              key={item.id}
+              item={item}
+              onClick={() => setSelected(item)}
+              progressColor={item.progress > 95 ? 'text-red-500' : 'text-blue-500'}
+            />
+          ))}
+        </div>
+      </div>
+
+      <div className={`hidden md:block transition-all duration-700 ${isRefreshing ? 'blur-sm opacity-60 scale-[0.99] pointer-events-none' : 'blur-0 opacity-100 scale-100'}`}>
 
         {filteredItems.length === 0 ? (
           <div className="text-center py-20 bg-white rounded-[2.5rem] border border-gray-100 shadow-sm">

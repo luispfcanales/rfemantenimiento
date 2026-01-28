@@ -10,7 +10,7 @@ export default function App() {
   return (
     <FilterProvider>
       <div className="min-h-screen flex flex-col bg-gray-50/50">
-        <main className="mx-auto w-full flex-1 px-4 md:px-12 py-8">
+        <main className="mx-auto w-full flex-1 px-0 md:px-12 pt-2 md:pt-8 pb-8">
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/requests" element={<RequestsList />} />
@@ -18,7 +18,7 @@ export default function App() {
           </Routes>
         </main>
         <footer className="mt-8 border-t bg-white">
-          <div className="mx-auto w-full px-4 md:px-12 py-3 text-xs text-gray-500 text-center">
+          <div className="mx-auto w-full px-0 md:px-12 py-3 text-xs text-gray-500 text-center">
             Rainforest • Mantenimiento • Presiona <kbd className="font-sans px-1 py-0.5 rounded border bg-gray-50 ml-1">Ctrl+Shift+K</kbd> para configuraciones
           </div>
         </footer>
