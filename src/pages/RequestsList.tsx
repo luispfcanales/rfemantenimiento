@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { fetchRequests } from '../lib/api'
 import type { RequestItem } from '../lib/api'
-import { Eye, Star } from 'lucide-react'
+import { Eye, Star, ExternalLink } from 'lucide-react'
 import { Badge } from '../components/ui/badge'
 import { Button } from '../components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog'
@@ -77,6 +77,18 @@ export default function RequestsList() {
                       <Button
                         variant="secondary"
                         size="icon"
+                        aria-label="Abrir en Odoo"
+                        onClick={() => {
+                          const url = `https://rainforest-uat-ra-210126-27711501.dev.odoo.com/web?debug=1#id=${req.id}&cids=1&menu_id=502&action=766&active_id=14&model=maintenance.request&view_type=form`
+                          window.open(url, '_blank')
+                        }}
+                        title="Abrir en Odoo"
+                      >
+                        <ExternalLink className="h-5 w-5" />
+                      </Button>
+                      <Button
+                        variant="secondary"
+                        size="icon"
                         aria-label="Ver detalles"
                         onClick={() => setSelected(req)}
                         title="Ver detalles"
@@ -105,7 +117,23 @@ export default function RequestsList() {
       <Dialog open={!!selected} onOpenChange={(o) => !o && setSelected(null)}>
         <DialogContent className="sm:max-w-[500px] w-[95vw] rounded-lg">
           <DialogHeader>
-            <DialogTitle>{selected?.name}</DialogTitle>
+            <div className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <DialogTitle>{selected?.name}</DialogTitle>
+              {selected && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => {
+                    const url = `https://rainforest-uat-ra-210126-27711501.dev.odoo.com/web?debug=1#id=${selected.id}&cids=1&menu_id=502&action=766&active_id=14&model=maintenance.request&view_type=form`
+                    window.open(url, '_blank')
+                  }}
+                  title="Abrir en Odoo"
+                >
+                  <ExternalLink className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
           </DialogHeader>
           {selected && (
             <div className="space-y-3 text-sm text-gray-700 px-4 py-3">
