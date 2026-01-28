@@ -32,6 +32,7 @@ export type RequestItem = {
   equipmentId: number
   equipmentName: string
   correctiveDate?: string
+  progress?: number
 }
 
 export async function fetchRequests(): Promise<RequestItem[]> {
@@ -63,4 +64,28 @@ export async function fetchRequests(): Promise<RequestItem[]> {
     }
   }
   return items
+}
+export async function fetchTeams(): Promise<Team[]> {
+  const apiUrl = (import.meta.env.VITE_API_URL || 'http://localhost:8080/api/mantenimiento/requests').replace('/requests', '/teams')
+  const res = await fetch(apiUrl)
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  const data: unknown = await res.json()
+  if (!Array.isArray(data)) return []
+  return data as Team[]
+}
+
+/**
+ * Converts an Odoo-style date string "YYYY-MM-DD HH:MM:SS" to a Unix epoch (seconds).
+ */
+export function toEpoch(s: string) {
+  const m = s.match(/^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})$/)
+  if (!m) return null
+  const y = Number(m[1])
+  const mo = Number(m[2])
+  const d = Number(m[3])
+  const h = Number(m[4])
+  const mi = Number(m[5])
+  const se = Number(m[6])
+  const ms = Date.UTC(y, mo - 1, d, h, mi, se)
+  return Math.floor(ms / 1000)
 }

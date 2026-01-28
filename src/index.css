@@ -1,6 +1,23 @@
 @import "tailwindcss";
 
-html, body, #root { height: 100%; }
+html,
+body,
+#root {
+  height: 100%;
+}
+
 @layer base {
-  body { @apply bg-gray-50 text-gray-900; }
+  body {
+    @apply bg-gray-50 text-gray-900;
+    background-image: radial-gradient(#e5e7eb 2px, transparent 2px);
+    background-size: 24px 24px;
+    background-attachment: fixed;
+  }
+}
+
+@layer utilities {
+  .bg-dots {
+    background-image: radial-gradient(#e5e7eb 2px, transparent 2px);
+    background-size: 24px 24px;
+  }
 }
