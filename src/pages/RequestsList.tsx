@@ -81,6 +81,7 @@ export default function RequestsList() {
   })
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [lastUpdated, setLastUpdated] = useState<Date | null>(new Date())
+  const [timeRemaining, setTimeRemaining] = useState<number>(0)
   const { selectedTeamIds, refreshInterval } = useFilter()
 
   const loadData = (showOverlay = true) => {
@@ -115,16 +116,27 @@ export default function RequestsList() {
     const handleRefresh = () => loadData(false)
     window.addEventListener('refresh-requests', handleRefresh)
 
+    // Setup initial time remaining
+    if (refreshInterval > 0) {
+      setTimeRemaining(refreshInterval * 60)
+    }
+
     let intervalId: any = null
     if (refreshInterval > 0) {
       intervalId = setInterval(() => {
         loadData(false)
+        setTimeRemaining(refreshInterval * 60)
       }, refreshInterval * 60 * 1000)
     }
+
+    const timerId = setInterval(() => {
+      setTimeRemaining(prev => Math.max(0, prev - 1))
+    }, 1000)
 
     return () => {
       window.removeEventListener('refresh-requests', handleRefresh)
       if (intervalId) clearInterval(intervalId)
+      clearInterval(timerId)
     }
   }, [refreshInterval])
 
@@ -234,7 +246,16 @@ export default function RequestsList() {
   }
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-700">
+    <div className="space-y-8 animate-in fade-in duration-700 relative">
+      {/* Refresh Progress Bar */}
+      {refreshInterval > 0 && (
+        <div className="fixed top-0 left-0 right-0 z-[100] h-1 bg-gray-100/30">
+          <div
+            className="h-full bg-blue-500/60 shadow-[0_0_8px_rgba(59,130,246,0.4)] transition-all duration-1000 ease-linear"
+            style={{ width: `${(timeRemaining / (refreshInterval * 60)) * 100}%` }}
+          />
+        </div>
+      )}
       <header className="md:hidden flex flex-col gap-4 mb-4 px-5">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
