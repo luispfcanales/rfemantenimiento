@@ -16,9 +16,9 @@ const getInitials = (name: string) => {
   return name.split(' ').filter(Boolean).map(n => n[0]).join('').slice(0, 2).toUpperCase()
 }
 
-function MobileInboxItem({ item, onClick, progressColor }: { item: RequestItem; onClick: () => void; progressColor: string }) {
+function MobileInboxItem({ item, onClick, colors }: { item: RequestItem; onClick: () => void; colors: any }) {
   const initials = getInitials(item.teamName || item.name)
-  const colors = [
+  const avatarColors = [
     'bg-blue-500 text-white',
     'bg-emerald-500 text-white',
     'bg-amber-500 text-white',
@@ -26,13 +26,13 @@ function MobileInboxItem({ item, onClick, progressColor }: { item: RequestItem; 
     'bg-pink-500 text-white',
     'bg-cyan-500 text-white'
   ]
-  const colorIndex = (item.teamId || 0) % colors.length
-  const avatarBg = colors[colorIndex]
+  const colorIndex = (item.teamId || 0) % avatarColors.length
+  const avatarBg = avatarColors[colorIndex]
 
   return (
     <div
       onClick={onClick}
-      className="flex items-start gap-4 p-5 border-b border-gray-50 active:bg-gray-50 transition-colors relative"
+      className={`flex items-start gap-4 p-5 border-b border-gray-50 active:bg-gray-100 transition-colors relative ${colors.bg}`}
     >
       {(item.progress ?? 0) > 90 && (
         <div className="absolute left-1.5 top-1/2 -translate-y-1/2 w-1.5 h-1.5 bg-blue-500 rounded-full shadow-[0_0_8px_rgba(59,130,246,0.8)]" />
@@ -60,7 +60,7 @@ function MobileInboxItem({ item, onClick, progressColor }: { item: RequestItem; 
                 <Star key={i} className="h-2.5 w-2.5 fill-current" />
               ))}
             </div>
-            <span className={`text-[11px] font-black ${progressColor}`}>
+            <span className={`text-[11px] font-black ${colors.text}`}>
               {item.progress ?? 0}%
             </span>
           </div>
@@ -149,12 +149,18 @@ export default function RequestsList() {
     const now = Math.floor(Date.now() / 1000)
     const itemsWithProgress = teamsFiltered.map(item => {
       let progress = 0
-      if (item.correctiveDate && item.scheduleDate) {
-        const start = toEpoch(item.correctiveDate)
+      if (item.scheduleDate) {
         const end = toEpoch(item.scheduleDate)
-        if (start !== null && end !== null && end > start) {
-          const elapsed = Math.max(0, Math.min(end - start, now - start))
-          progress = Math.round((elapsed / (end - start)) * 100)
+        if (end !== null) {
+          if (now >= end) {
+            progress = 100
+          } else if (item.correctiveDate) {
+            const start = toEpoch(item.correctiveDate)
+            if (start !== null && end > start) {
+              const elapsed = Math.max(0, now - start)
+              progress = Math.min(100, Math.round((elapsed / (end - start)) * 100))
+            }
+          }
         }
       }
       return { ...item, progress }
@@ -204,21 +210,21 @@ export default function RequestsList() {
 
   const getItemColors = (progress: number = 0) => {
     if (progress > 95) return {
-      bg: 'bg-red-100/40',
-      border: 'border-red-200/50',
-      hover: 'hover:bg-red-100/60',
+      bg: 'bg-red-500/15',
+      border: 'border-red-200/80',
+      hover: 'hover:bg-red-500/20',
       text: 'text-red-700'
     }
     if (progress > 85) return {
-      bg: 'bg-amber-50/40',
-      border: 'border-amber-100/50',
-      hover: 'hover:bg-amber-50/60',
+      bg: 'bg-amber-500/15',
+      border: 'border-amber-200/80',
+      hover: 'hover:bg-amber-500/20',
       text: 'text-amber-600'
     }
     return {
-      bg: 'bg-green-50/30',
-      border: 'border-green-100/40',
-      hover: 'hover:bg-green-50/50',
+      bg: 'bg-green-500/10',
+      border: 'border-green-200/80',
+      hover: 'hover:bg-green-500/15',
       text: 'text-green-600'
     }
   }
@@ -246,7 +252,7 @@ export default function RequestsList() {
   }
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-700 relative">
+    <div className="space-y-1 animate-in fade-in duration-700 relative">
       {/* Refresh Progress Bar */}
       {refreshInterval > 0 && (
         <div className="fixed top-0 left-0 right-0 z-[100] h-1 bg-gray-100/30">
@@ -328,7 +334,7 @@ export default function RequestsList() {
               key={item.id}
               item={item}
               onClick={() => setSelected(item)}
-              progressColor={item.progress > 95 ? 'text-red-500' : 'text-blue-500'}
+              colors={getItemColors(item.progress)}
             />
           ))}
         </div>
@@ -351,6 +357,7 @@ export default function RequestsList() {
                     <tr className="bg-gray-50/50 border-b border-gray-100">
                       <th className="px-8 py-3 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Prioridad</th>
                       <th className="px-6 py-3 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Solicitud / Equipo</th>
+                      <th className="px-6 py-3 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Frecuencia</th>
                       <th className="px-6 py-3 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Urgencia de Mantenimiento</th>
                       <th className="px-8 py-3 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] text-right">Acciones</th>
                     </tr>
@@ -377,6 +384,18 @@ export default function RequestsList() {
                                 {item.teamName} • {item.equipmentName}
                               </p>
                             </div>
+                          </td>
+                          <td className="px-6 py-2.5 align-top">
+                            {item.frequency ? (
+                              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-50/50 border border-blue-100/50">
+                                <Clock className="h-3 w-3 text-blue-500" />
+                                <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest">
+                                  {item.frequency}
+                                </span>
+                              </div>
+                            ) : (
+                              <span className="text-[10px] font-bold text-gray-300 uppercase tracking-widest">Sin frecuencia</span>
+                            )}
                           </td>
                           <td className="px-6 py-2.5 align-top">
                             <div className="space-y-1">
@@ -441,6 +460,12 @@ export default function RequestsList() {
                         <Star key={i} className="h-3 w-3 fill-current" />
                       ))}
                     </div>
+                    {item.frequency && (
+                      <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/50 border border-gray-100 shadow-sm">
+                        <Clock className="h-2.5 w-2.5 text-blue-500" />
+                        <span className="text-[9px] font-black text-blue-600 uppercase tracking-widest">{item.frequency}</span>
+                      </div>
+                    )}
                     <Badge className="bg-gray-50 text-gray-600 border-none px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest">
                       {item.stageName}
                     </Badge>

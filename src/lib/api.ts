@@ -12,6 +12,11 @@ export type RawRequest = {
   schedule_date: string | false
   equipment_id: [number, string]
   corrective_date: string
+  repeat_interval?: number
+  repeat_unit?: string
+  repeat_type?: string
+  recurrence_type?: string | false
+  recurrence_value?: number
 }
 
 export type ApiResponseItem = {
@@ -33,6 +38,7 @@ export type RequestItem = {
   equipmentName: string
   correctiveDate?: string
   progress?: number
+  frequency?: string
 }
 
 export async function fetchRequests(): Promise<RequestItem[]> {
@@ -48,6 +54,11 @@ export async function fetchRequests(): Promise<RequestItem[]> {
     for (const req of groupRequests) {
       if (!req || !('id' in req) || req.id === undefined) continue
       const r = req as RawRequest
+
+      const frequency = r.recurrence_value !== 0 && r.recurrence_value !== undefined
+        ? `${r.recurrence_value} ${r.recurrence_type || ''}`.trim()
+        : `${r.repeat_interval || ''} ${r.repeat_unit || ''}`.trim()
+
       items.push({
         id: r.id,
         name: r.name,
@@ -60,6 +71,7 @@ export async function fetchRequests(): Promise<RequestItem[]> {
         equipmentId: r.equipment_id?.[0],
         equipmentName: r.equipment_id?.[1],
         correctiveDate: r.corrective_date || undefined,
+        frequency: frequency || undefined
       })
     }
   }
@@ -86,6 +98,6 @@ export function toEpoch(s: string) {
   const h = Number(m[4])
   const mi = Number(m[5])
   const se = Number(m[6])
-  const ms = Date.UTC(y, mo - 1, d, h, mi, se)
+  const ms = new Date(y, mo - 1, d, h, mi, se).getTime()
   return Math.floor(ms / 1000)
 }

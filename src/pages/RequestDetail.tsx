@@ -24,9 +24,9 @@ export default function RequestDetail({ item, onClose }: Props) {
   }
 
   const getBgColor = (v: number = 0) => {
-    if (v > 95) return 'bg-red-100/40'
-    if (v > 85) return 'bg-amber-50/30'
-    return 'bg-green-50/20'
+    if (v > 95) return 'bg-red-500/15'
+    if (v > 85) return 'bg-amber-500/15'
+    return 'bg-green-500/10'
   }
 
   return (
@@ -67,7 +67,7 @@ export default function RequestDetail({ item, onClose }: Props) {
       {/* Content Section */}
       <div className="flex-1 overflow-y-auto p-4 sm:p-8 space-y-6 sm:space-y-8 custom-scrollbar">
         {/* Info Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="bg-white/60 backdrop-blur-sm rounded-xl sm:rounded-2xl p-3 sm:p-4 border border-gray-100 flex items-center gap-3 sm:gap-4">
             <div className="h-9 w-9 sm:h-10 sm:w-10 rounded-lg sm:rounded-xl bg-blue-50 flex items-center justify-center text-blue-600 flex-shrink-0">
               <Wrench className="h-4 w-4 sm:h-5 sm:w-5" />
@@ -75,6 +75,16 @@ export default function RequestDetail({ item, onClose }: Props) {
             <div>
               <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Equipo</p>
               <h4 className="text-sm font-bold text-gray-900">{item.equipmentName || 'Sin asignar'}</h4>
+            </div>
+          </div>
+
+          <div className="bg-white/60 backdrop-blur-sm rounded-xl sm:rounded-2xl p-3 sm:p-4 border border-gray-100 flex items-center gap-3 sm:gap-4">
+            <div className="h-9 w-9 sm:h-10 sm:w-10 rounded-lg sm:rounded-xl bg-purple-50 flex items-center justify-center text-purple-600 flex-shrink-0">
+              <Clock className="h-4 w-4 sm:h-5 sm:w-5" />
+            </div>
+            <div>
+              <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Frecuencia</p>
+              <h4 className="text-sm font-bold text-gray-900">{item.frequency || 'Sin frecuencia'}</h4>
             </div>
           </div>
 
