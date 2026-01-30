@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from 'react'
-import { fetchRequests, toEpoch } from '../lib/api'
+import { fetchRequests, toEpoch, ODOO_BASE_URL } from '../lib/api'
 import type { RequestItem } from '../lib/api'
 import { Eye, Star, ExternalLink, LayoutGrid, List as ListIcon, AlertCircle, Clock } from 'lucide-react'
 import { Badge } from '../components/ui/badge'
@@ -141,7 +141,7 @@ export default function RequestsList() {
   }, [refreshInterval])
 
   const filteredItems = useMemo(() => {
-    const activeItems = items.filter((item) => item.stageName !== 'Repaired' && item.scheduleDate)
+    const activeItems = items.filter((item) => item.stageName !== 'Repaired' && !item.archive)
     const teamsFiltered = selectedTeamIds.size === 0
       ? activeItems
       : activeItems.filter((item) => selectedTeamIds.has(item.teamId))
@@ -430,7 +430,7 @@ export default function RequestsList() {
                                 variant="ghost"
                                 size="icon"
                                 className="h-10 w-10 text-gray-400 hover:text-orange-500 hover:bg-white hover:shadow-lg rounded-xl transition-all duration-300"
-                                onClick={() => window.open(`https://rainforest-uat-ra-210126-27711501.dev.odoo.com/web?debug=1#id=${item.id}&cids=1&menu_id=502&action=766&active_id=14&model=maintenance.request&view_type=form`, '_blank')}
+                                onClick={() => window.open(`https://${ODOO_BASE_URL}/web?debug=1#id=${item.id}&cids=1&menu_id=502&action=766&active_id=14&model=maintenance.request&view_type=form`, '_blank')}
                               >
                                 <ExternalLink className="h-5 w-5" />
                               </Button>
@@ -512,7 +512,7 @@ export default function RequestsList() {
                           variant="ghost"
                           size="icon"
                           className="h-9 w-9 text-gray-400 hover:text-orange-500 hover:bg-orange-50 rounded-xl transition-all"
-                          onClick={() => window.open(`https://rainforest-uat-ra-210126-27711501.dev.odoo.com/web?debug=1#id=${item.id}&cids=1&menu_id=502&action=766&active_id=14&model=maintenance.request&view_type=form`, '_blank')}
+                          onClick={() => window.open(`https://${ODOO_BASE_URL}/web?debug=1#id=${item.id}&cids=1&menu_id=502&action=766&active_id=14&model=maintenance.request&view_type=form`, '_blank')}
                         >
                           <ExternalLink className="h-4 w-4" />
                         </Button>

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { fetchTeams, type Team } from '../lib/api'
+import { fetchTeams, type Team, TEAM_NAME_MAP } from '../lib/api'
 import { useFilter } from '../context/FilterContext'
 import {
     Dialog,
@@ -80,7 +80,7 @@ export function SettingsModal() {
                                                 onChange={() => toggleTeam(team.id)}
                                             />
                                             <span className={`text-sm font-semibold ${selected ? 'text-blue-900' : 'text-gray-700'}`}>
-                                                {team.name}
+                                                {TEAM_NAME_MAP[team.id] || team.name}
                                             </span>
                                         </label>
                                     )

@@ -3,6 +3,14 @@ export type Team = {
   name: string
 }
 
+export const ODOO_BASE_URL = 'rainforest-uat-ra-290126-28054275.dev.odoo.com'
+
+export const TEAM_NAME_MAP: Record<number, string> = {
+  14: 'REFUGIO',
+  15: 'POSADA',
+  16: 'TRC'
+}
+
 export type RawRequest = {
   id: number
   name: string
@@ -17,6 +25,7 @@ export type RawRequest = {
   repeat_type?: string
   recurrence_type?: string | false
   recurrence_value?: number
+  archive: boolean
 }
 
 export type ApiResponseItem = {
@@ -39,6 +48,7 @@ export type RequestItem = {
   correctiveDate?: string
   progress?: number
   frequency?: string
+  archive: boolean
 }
 
 export async function fetchRequests(): Promise<RequestItem[]> {
@@ -59,11 +69,14 @@ export async function fetchRequests(): Promise<RequestItem[]> {
         ? `${r.recurrence_value} ${r.recurrence_type || ''}`.trim()
         : `${r.repeat_interval || ''} ${r.repeat_unit || ''}`.trim()
 
+      const teamId = team.id ?? r.maintenance_team_id?.[0]
+      const teamName = TEAM_NAME_MAP[teamId] || (team.name ?? r.maintenance_team_id?.[1])
+
       items.push({
         id: r.id,
         name: r.name,
-        teamId: team.id ?? r.maintenance_team_id?.[0],
-        teamName: team.name ?? r.maintenance_team_id?.[1],
+        teamId,
+        teamName,
         stageId: r.stage_id?.[0],
         stageName: r.stage_id?.[1],
         priority: Number(r.priority ?? 0),
@@ -71,7 +84,8 @@ export async function fetchRequests(): Promise<RequestItem[]> {
         equipmentId: r.equipment_id?.[0],
         equipmentName: r.equipment_id?.[1],
         correctiveDate: r.corrective_date || undefined,
-        frequency: frequency || undefined
+        frequency: frequency || undefined,
+        archive: r.archive || false
       })
     }
   }
@@ -83,7 +97,10 @@ export async function fetchTeams(): Promise<Team[]> {
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
   const data: unknown = await res.json()
   if (!Array.isArray(data)) return []
-  return data as Team[]
+  return (data as Team[]).map(t => ({
+    ...t,
+    name: TEAM_NAME_MAP[t.id] || t.name
+  }))
 }
 
 /**

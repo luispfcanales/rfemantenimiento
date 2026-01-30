@@ -3,6 +3,7 @@ import { Badge } from '../components/ui/badge'
 import { Button } from '../components/ui/button'
 import { Progress } from '../components/ui/progress'
 import type { RequestItem } from '../lib/api'
+import { ODOO_BASE_URL } from '../lib/api'
 
 type Props = {
   item: RequestItem
@@ -166,7 +167,7 @@ export default function RequestDetail({ item, onClose }: Props) {
             </Button>
             <Button
               className="w-full sm:w-auto bg-gray-900 text-white hover:bg-black px-4 rounded-xl h-10 text-[10px] font-black uppercase tracking-widest transition-all shadow-md flex items-center justify-center gap-2 order-1 sm:order-2"
-              onClick={() => window.open(`https://rainforest-uat-ra-210126-27711501.dev.odoo.com/web?debug=1#id=${item.id}&cids=1&menu_id=502&action=766&active_id=14&model=maintenance.request&view_type=form`, '_blank')}
+              onClick={() => window.open(`https://${ODOO_BASE_URL}/web?debug=1#id=${item.id}&cids=1&menu_id=502&action=766&active_id=14&model=maintenance.request&view_type=form`, '_blank')}
             >
               <ExternalLink className="h-3.5 w-3.5" />
               Ver en Odoo
