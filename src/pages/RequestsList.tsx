@@ -210,22 +210,22 @@ export default function RequestsList() {
 
   const getItemColors = (progress: number = 0) => {
     if (progress > 95) return {
-      bg: 'bg-red-500/15',
-      border: 'border-red-200/80',
-      hover: 'hover:bg-red-500/20',
-      text: 'text-red-700'
+      bg: 'bg-red-500/30',
+      border: 'border-red-300/80',
+      hover: 'hover:bg-red-500/40',
+      text: 'text-red-800'
     }
     if (progress > 85) return {
-      bg: 'bg-amber-500/15',
-      border: 'border-amber-200/80',
-      hover: 'hover:bg-amber-500/20',
-      text: 'text-amber-600'
+      bg: 'bg-amber-500/30',
+      border: 'border-amber-300/80',
+      hover: 'hover:bg-amber-500/40',
+      text: 'text-amber-800'
     }
     return {
-      bg: 'bg-green-500/10',
-      border: 'border-green-200/80',
-      hover: 'hover:bg-green-500/15',
-      text: 'text-green-600'
+      bg: 'bg-green-500/30',
+      border: 'border-green-300/80',
+      hover: 'hover:bg-green-500/40',
+      text: 'text-green-800'
     }
   }
 
@@ -355,11 +355,11 @@ export default function RequestsList() {
                 <table className="w-full text-left border-collapse min-w-[800px] md:min-w-0">
                   <thead>
                     <tr className="bg-gray-50/50 border-b border-gray-100">
-                      <th className="px-8 py-3 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Prioridad</th>
-                      <th className="px-6 py-3 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Solicitud / Equipo</th>
-                      <th className="px-6 py-3 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Frecuencia</th>
-                      <th className="px-6 py-3 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Urgencia de Mantenimiento</th>
-                      <th className="px-8 py-3 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] text-right">Acciones</th>
+                      <th className="px-8 py-2 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Prioridad</th>
+                      <th className="px-6 py-2 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Solicitud</th>
+                      <th className="px-6 py-2 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Frecuencia</th>
+                      <th className="px-6 py-2 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Estado / Progreso</th>
+                      <th className="px-8 py-2 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] text-right">Acciones</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-50">
@@ -368,24 +368,19 @@ export default function RequestsList() {
                       const colors = getItemColors(item.progress)
                       return (
                         <tr key={item.id} className={`group ${colors.hover} transition-all duration-300 ${colors.bg}`}>
-                          <td className="px-8 py-3 align-top">
+                          <td className="px-8 py-1.5 align-middle">
                             <div className="flex text-amber-400 space-x-0.5">
                               {[...Array(item.priority)].map((_, i) => (
                                 <Star key={i} className="h-3.5 w-3.5 fill-current" />
                               ))}
                             </div>
                           </td>
-                          <td className="px-6 py-2.5 align-top">
-                            <div>
-                              <h3 className="text-sm font-bold text-gray-900 group-hover:text-blue-600 transition-colors">
-                                {item.name}
-                              </h3>
-                              <p className="text-[11px] font-medium text-gray-400 mt-0.5 uppercase tracking-wider">
-                                {item.teamName} • {item.equipmentName}
-                              </p>
-                            </div>
+                          <td className="px-6 py-1.5 align-middle">
+                            <h3 className="text-sm font-bold text-gray-900 group-hover:text-blue-600 transition-colors truncate max-w-[300px]">
+                              {item.name}
+                            </h3>
                           </td>
-                          <td className="px-6 py-2.5 align-top">
+                          <td className="px-6 py-1.5 align-middle">
                             {item.frequency ? (
                               <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-50/50 border border-blue-100/50">
                                 <Clock className="h-3 w-3 text-blue-500" />
@@ -397,39 +392,38 @@ export default function RequestsList() {
                               <span className="text-[10px] font-bold text-gray-300 uppercase tracking-widest">Sin frecuencia</span>
                             )}
                           </td>
-                          <td className="px-6 py-2.5 align-top">
-                            <div className="space-y-1">
-                              <div className="w-40">
-                                <div className="flex justify-between items-center mb-0.5 px-0.5">
-                                  <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">{item.progress}%</span>
-                                  <span className="text-[9px] font-bold text-gray-600 tracking-tight">{item.stageName}</span>
-                                </div>
+                          <td className="px-6 py-1.5 align-middle">
+                            <div className="flex items-center gap-4">
+                              <div className="w-24">
                                 <Progress
                                   value={item.progress}
                                   className="h-1.5 rounded-full bg-gray-100"
                                 />
                               </div>
-                              {overdueInfo && (
-                                <p className={`text-[10px] font-black uppercase tracking-widest ${overdueInfo.overdue ? 'text-red-500' : 'text-amber-500'}`}>
-                                  {overdueInfo.text}
-                                </p>
-                              )}
+                              <div className="flex flex-col min-w-[80px]">
+                                <span className="text-[10px] font-black text-gray-900">{item.progress}% • {item.stageName}</span>
+                                {overdueInfo && (
+                                  <span className={`text-[9px] font-black uppercase tracking-widest ${overdueInfo.overdue ? 'text-red-500' : 'text-amber-500'}`}>
+                                    {overdueInfo.text}
+                                  </span>
+                                )}
+                              </div>
                             </div>
                           </td>
-                          <td className="px-8 py-3 align-top text-right">
+                          <td className="px-8 py-1.5 align-middle text-right">
                             <div className="flex items-center justify-end gap-2">
                               <Button
                                 variant="ghost"
                                 size="icon"
                                 onClick={() => setSelected(item)}
-                                className="h-10 w-10 text-gray-400 hover:text-blue-600 hover:bg-white hover:shadow-lg rounded-xl transition-all duration-300"
+                                className="h-8 w-8 text-gray-400 hover:text-blue-600 hover:bg-white hover:shadow-lg rounded-xl transition-all duration-300"
                               >
-                                <Eye className="h-5 w-5" />
+                                <Eye className="h-4 w-4" />
                               </Button>
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                className="h-10 w-10 text-gray-400 hover:text-orange-500 hover:bg-white hover:shadow-lg rounded-xl transition-all duration-300"
+                                className="h-8 w-8 text-gray-400 hover:text-orange-500 hover:bg-white hover:shadow-lg rounded-xl transition-all duration-300"
                                 onClick={() => window.open(`https://${ODOO_BASE_URL}/web?debug=1#id=${item.id}&cids=1&menu_id=502&action=766&active_id=14&model=maintenance.request&view_type=form`, '_blank')}
                               >
                                 <ExternalLink className="h-5 w-5" />
