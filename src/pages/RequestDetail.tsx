@@ -130,7 +130,15 @@ export default function RequestDetail({ item, onClose }: Props) {
             <h3 className="text-[10px] font-black uppercase tracking-widest text-gray-500">Cronología</h3>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+            <div className="bg-white/40 rounded-xl sm:rounded-2xl p-3 sm:p-4 border border-gray-100/50 flex gap-3 sm:gap-4">
+              <Calendar className="h-4 w-4 sm:h-5 sm:w-5 text-emerald-500" />
+              <div>
+                <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Último Mant.</p>
+                <p className="text-sm font-bold text-gray-900">{item.requestDate || '---'}</p>
+              </div>
+            </div>
+
             <div className="bg-white/40 rounded-xl sm:rounded-2xl p-3 sm:p-4 border border-gray-100/50 flex gap-3 sm:gap-4">
               <Calendar className="h-4 w-4 sm:h-5 sm:w-5 text-blue-500" />
               <div>

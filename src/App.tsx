@@ -10,7 +10,7 @@ export default function App() {
   return (
     <FilterProvider>
       <div className="min-h-screen flex flex-col bg-gray-50/50">
-        <main className="mx-auto w-full flex-1 px-0 md:px-12 pt-0 md:pt-0 lg:pt-0 pb-8">
+        <main className="mx-auto w-full flex-1 px-0 md:px-6 lg:px-8 xl:px-12 pt-0 pb-8">
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/requests" element={<RequestsList />} />

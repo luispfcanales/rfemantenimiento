@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from 'react'
 import { fetchRequests, toEpoch, ODOO_BASE_URL } from '../lib/api'
 import type { RequestItem } from '../lib/api'
-import { Eye, Star, ExternalLink, LayoutGrid, List as ListIcon, AlertCircle, Clock } from 'lucide-react'
+import { Eye, Star, ExternalLink, LayoutGrid, List as ListIcon, AlertCircle, Clock, Calendar } from 'lucide-react'
 import { Badge } from '../components/ui/badge'
 import { Button } from '../components/ui/button'
 import { Dialog, DialogContent } from '../components/ui/dialog'
@@ -149,16 +149,27 @@ export default function RequestsList() {
     const now = Math.floor(Date.now() / 1000)
     const itemsWithProgress = teamsFiltered.map(item => {
       let progress = 0
-      if (item.scheduleDate) {
-        const end = toEpoch(item.scheduleDate)
-        if (end !== null) {
-          if (now >= end) {
-            progress = 100
-          } else if (item.correctiveDate) {
-            const start = toEpoch(item.correctiveDate)
-            if (start !== null && end > start) {
-              const elapsed = Math.max(0, now - start)
-              progress = Math.min(100, Math.round((elapsed / (end - start)) * 100))
+      const unit = item.frequencyUnit?.toLowerCase()
+      const isHours = unit === 'hours' || unit === 'hour' || unit === 'horas' || unit === 'hora'
+
+      if (isHours && item.usedValue !== undefined && item.recurrenceValue) {
+        progress = Math.min(100, Math.round((item.usedValue / item.recurrenceValue) * 100))
+      } else {
+        const deadline = item.scheduleDate || item.correctiveDate
+        if (deadline) {
+          const end = toEpoch(deadline)
+          if (end !== null) {
+            if (now >= end) {
+              progress = 100
+            } else {
+              const startDate = item.requestDate || item.correctiveDate
+              if (startDate) {
+                const start = toEpoch(startDate)
+                if (start !== null && end > start) {
+                  const elapsed = Math.max(0, now - start)
+                  progress = Math.min(100, Math.round((elapsed / (end - start)) * 100))
+                }
+              }
             }
           }
         }
@@ -167,8 +178,10 @@ export default function RequestsList() {
     })
 
     return [...itemsWithProgress].sort((a, b) => {
-      const aEpoch = a.scheduleDate ? toEpoch(a.scheduleDate) : null
-      const bEpoch = b.scheduleDate ? toEpoch(b.scheduleDate) : null
+      const aDeadline = a.scheduleDate || a.correctiveDate
+      const bDeadline = b.scheduleDate || b.correctiveDate
+      const aEpoch = aDeadline ? toEpoch(aDeadline) : null
+      const bEpoch = bDeadline ? toEpoch(bDeadline) : null
 
       if (aEpoch === null && bEpoch === null) return 0
       if (aEpoch === null) return 1
@@ -188,8 +201,9 @@ export default function RequestsList() {
   }, [items, selectedTeamIds])
 
   const getOverdueInfo = (item: RequestItem) => {
-    if (!item.scheduleDate) return null
-    const sched = toEpoch(item.scheduleDate)
+    const deadline = item.scheduleDate || item.correctiveDate
+    if (!deadline) return null
+    const sched = toEpoch(deadline)
     if (sched == null) return null
     const now = Math.floor(Date.now() / 1000)
     const diff = sched - now
@@ -358,6 +372,7 @@ export default function RequestsList() {
                       <th className="px-8 py-2 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Prioridad</th>
                       <th className="px-6 py-2 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Solicitud</th>
                       <th className="px-6 py-2 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Frecuencia</th>
+                      <th className="px-6 py-2 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Último Mant.</th>
                       <th className="px-6 py-2 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Estado / Progreso</th>
                       <th className="px-8 py-2 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] text-right">Acciones</th>
                     </tr>
@@ -376,7 +391,7 @@ export default function RequestsList() {
                             </div>
                           </td>
                           <td className="px-6 py-1.5 align-middle">
-                            <h3 className="text-sm font-bold text-gray-900 group-hover:text-blue-600 transition-colors truncate max-w-[300px]">
+                            <h3 className="text-sm font-bold text-gray-900 group-hover:text-blue-600 transition-colors truncate max-w-[300px] lg:max-w-[500px] xl:max-w-none">
                               {item.name}
                             </h3>
                           </td>
@@ -391,6 +406,13 @@ export default function RequestsList() {
                             ) : (
                               <span className="text-[10px] font-bold text-gray-300 uppercase tracking-widest">Sin frecuencia</span>
                             )}
+                          </td>
+                          <td className="px-6 py-1.5 align-middle">
+                            <div className="flex flex-col">
+                              <span className="text-[10px] font-bold text-gray-900 group-hover:text-blue-600 transition-colors">
+                                {item.requestDate ? item.requestDate.split(' ')[0].split('-').reverse().join('/') : '---'}
+                              </span>
+                            </div>
                           </td>
                           <td className="px-6 py-1.5 align-middle">
                             <div className="flex items-center gap-4">
@@ -468,9 +490,17 @@ export default function RequestsList() {
                   <h3 className="text-lg font-black text-gray-900 leading-tight mb-2 group-hover:text-blue-600 transition-colors line-clamp-2 min-h-[3rem]">
                     {item.name}
                   </h3>
-                  <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-widest mb-8">
-                    {item.teamName}
-                  </p>
+                  <div className="flex items-center justify-between mb-8">
+                    <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-widest">
+                      {item.teamName}
+                    </p>
+                    {item.requestDate && (
+                      <div className="flex items-center gap-1 text-[10px] font-bold text-gray-400">
+                        <Calendar className="h-3 w-3" />
+                        <span>{item.requestDate.split(' ')[0].split('-').reverse().join('/')}</span>
+                      </div>
+                    )}
+                  </div>
 
                   <div className="mt-auto space-y-6">
                     <div className="space-y-2.5">
