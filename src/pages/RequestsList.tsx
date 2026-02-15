@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from 'react'
-import { fetchRequests, toEpoch, ODOO_BASE_URL } from '../lib/api'
+import { fetchRequests, toEpoch, ODOO_BASE_URL, ODOO_BASE_URL_PROD } from '../lib/api'
 import type { RequestItem } from '../lib/api'
-import { Eye, Star, ExternalLink, LayoutGrid, List as ListIcon, AlertCircle, Clock, Calendar } from 'lucide-react'
+import { Eye, Star, ExternalLink, LayoutGrid, List as ListIcon, AlertCircle, Clock, Calendar, Gauge } from 'lucide-react'
 import { Badge } from '../components/ui/badge'
 import { Button } from '../components/ui/button'
 import { Dialog, DialogContent } from '../components/ui/dialog'
@@ -82,7 +82,7 @@ export default function RequestsList() {
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [lastUpdated, setLastUpdated] = useState<Date | null>(new Date())
   const [timeRemaining, setTimeRemaining] = useState<number>(0)
-  const { selectedTeamIds, refreshInterval } = useFilter()
+  const { selectedTeamIds, refreshInterval, isProduction } = useFilter()
 
   const loadData = (showOverlay = true) => {
     if (showOverlay) {
@@ -91,7 +91,7 @@ export default function RequestsList() {
       setIsRefreshing(true)
     }
 
-    fetchRequests()
+    fetchRequests(isProduction)
       .then((data) => {
         setItems(data)
         setError(null)
@@ -144,42 +144,38 @@ export default function RequestsList() {
     const activeItems = items.filter((item) => item.stageName !== 'Repaired' && !item.archive)
     const teamsFiltered = selectedTeamIds.size === 0
       ? activeItems
-      : activeItems.filter((item) => selectedTeamIds.has(item.teamId))
+      : activeItems.filter((item) => {
+        if (!selectedTeamIds.has(item.teamId)) return false
+
+        const LOCATION_TEAMS = [14, 15, 16]
+        const TEAM_KEYWORDS: Record<number, string> = { 14: 'ARA', 15: 'APA', 16: 'TRC' }
+
+        const nameParts = item.name.split(' - ')
+        const lastNamePart = nameParts[nameParts.length - 1]?.trim().toUpperCase()
+
+        // 1. If item belongs to a Location Team (Refugio, Posada, TRC), enforce its specific keyword
+        if (LOCATION_TEAMS.includes(item.teamId)) {
+          return lastNamePart === TEAM_KEYWORDS[item.teamId]
+        }
+
+        // 2. If item belongs to another team (e.g., Botes), filter based on SELECTED Location Teams
+        const selectedLocationIds = Array.from(selectedTeamIds).filter(id => LOCATION_TEAMS.includes(id))
+
+        // If no locations selected OR all 3 locations selected -> Show all (no text filter)
+        if (selectedLocationIds.length === 0 || selectedLocationIds.length === 3) {
+          return true
+        }
+
+        // Otherwise (1 or 2 locations selected) -> Show only if last name part matches any selected location's keyword
+        if (!lastNamePart) return false
+        return selectedLocationIds.some(locId => lastNamePart === TEAM_KEYWORDS[locId])
+      })
 
     const now = Math.floor(Date.now() / 1000)
-    const itemsWithProgress = teamsFiltered.map(item => {
-      let progress = 0
-      const unit = item.frequencyUnit?.toLowerCase()
-      const isHours = unit === 'hours' || unit === 'hour' || unit === 'horas' || unit === 'hora'
 
-      if (isHours && item.usedValue !== undefined && item.recurrenceValue) {
-        progress = Math.min(100, Math.round((item.usedValue / item.recurrenceValue) * 100))
-      } else {
-        const deadline = item.scheduleDate || item.correctiveDate
-        if (deadline) {
-          const end = toEpoch(deadline)
-          if (end !== null) {
-            if (now >= end) {
-              progress = 100
-            } else {
-              const startDate = item.requestDate || item.correctiveDate
-              if (startDate) {
-                const start = toEpoch(startDate)
-                if (start !== null && end > start) {
-                  const elapsed = Math.max(0, now - start)
-                  progress = Math.min(100, Math.round((elapsed / (end - start)) * 100))
-                }
-              }
-            }
-          }
-        }
-      }
-      return { ...item, progress }
-    })
-
-    return [...itemsWithProgress].sort((a, b) => {
-      const aDeadline = a.scheduleDate || a.correctiveDate
-      const bDeadline = b.scheduleDate || b.correctiveDate
+    return [...teamsFiltered].sort((a, b) => {
+      const aDeadline = a.preventiveDate || a.scheduleDate || a.correctiveDate
+      const bDeadline = b.preventiveDate || b.scheduleDate || b.correctiveDate
       const aEpoch = aDeadline ? toEpoch(aDeadline) : null
       const bEpoch = bDeadline ? toEpoch(bDeadline) : null
 
@@ -200,8 +196,18 @@ export default function RequestsList() {
     })
   }, [items, selectedTeamIds])
 
+  const hoursItems = filteredItems.filter(item => {
+    const unit = item.frequencyUnit?.toLowerCase()
+    return unit === 'hours' || unit === 'hour' || unit === 'horas' || unit === 'hora'
+  })
+
+  const dateItems = filteredItems.filter(item => {
+    const unit = item.frequencyUnit?.toLowerCase()
+    return !(unit === 'hours' || unit === 'hour' || unit === 'horas' || unit === 'hora')
+  })
+
   const getOverdueInfo = (item: RequestItem) => {
-    const deadline = item.scheduleDate || item.correctiveDate
+    const deadline = item.preventiveDate || item.scheduleDate || item.correctiveDate
     if (!deadline) return null
     const sched = toEpoch(deadline)
     if (sched == null) return null
@@ -242,6 +248,225 @@ export default function RequestsList() {
       text: 'text-green-800'
     }
   }
+
+  const renderList = (itemsToRender: RequestItem[]) => (
+    <div className="bg-white rounded-[2rem] shadow-xl shadow-gray-200/30 border border-gray-100 overflow-hidden transition-all duration-500 mb-6">
+      <div className="bg-white border border-gray-100 rounded-[2rem] overflow-hidden shadow-sm">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse min-w-[800px] md:min-w-0 text-sm">
+            <thead>
+              <tr className="bg-gray-50/50 border-b border-gray-100">
+                <th className="px-6 py-2 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Prioridad</th>
+                <th className="px-5 py-2 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Solicitud</th>
+                <th className="px-5 py-2 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Frecuencia</th>
+                <th className="px-5 py-2 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Último Mant.</th>
+                <th className="px-5 py-2 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Estado / Progreso</th>
+                <th className="px-6 py-2 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] text-right">Acciones</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-50">
+              {itemsToRender.map((item) => {
+                const overdueInfo = getOverdueInfo(item)
+                const colors = getItemColors(item.progress)
+                const unit = item.frequencyUnit?.toLowerCase()
+                const isHours = unit === 'hours' || unit === 'hour' || unit === 'horas' || unit === 'hora'
+
+                return (
+                  <tr key={item.id} className={`group ${colors.hover} transition-all duration-300 ${colors.bg}`}>
+                    <td className="px-6 py-1 align-middle">
+                      <div className="flex text-amber-400 space-x-0.5">
+                        {[...Array(item.priority)].map((_, i) => (
+                          <Star key={i} className="h-3 w-3 fill-current" />
+                        ))}
+                      </div>
+                    </td>
+                    <td className="px-5 py-1 align-middle">
+                      <h3 className="text-xs font-bold text-gray-900 group-hover:text-blue-600 transition-colors truncate max-w-[200px] lg:max-w-[400px]">
+                        {item.name}
+                      </h3>
+                    </td>
+                    <td className="px-5 py-1 align-middle">
+                      {item.frequency ? (
+                        <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-blue-50/50 border border-blue-100/50">
+                          <Clock className="h-2.5 w-2.5 text-blue-500" />
+                          <span className="text-[9px] font-black text-blue-600 uppercase tracking-widest">
+                            {isHours && item.usedValue !== undefined ? `${item.usedValue} / ` : ''}{item.frequency}
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="text-[9px] font-bold text-gray-300 uppercase tracking-widest">Sin frecuencia</span>
+                      )}
+                    </td>
+                    <td className="px-5 py-1 align-middle">
+                      <div className="flex flex-col">
+                        <span className="text-[9px] font-bold text-gray-900 group-hover:text-blue-600 transition-colors">
+                          {item.requestDate ? item.requestDate.split(' ')[0].split('-').reverse().join('/') : '---'}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-5 py-1 align-middle">
+                      <div className="flex items-center gap-3">
+                        <div className="w-20">
+                          <Progress
+                            value={item.progress}
+                            className="h-1 rounded-full bg-gray-100"
+                          />
+                        </div>
+                        <div className="flex flex-col min-w-[70px]">
+                          <span className="text-[9px] font-black text-gray-900">{item.progress}% • {item.stageName}</span>
+                          {overdueInfo && !isHours && (
+                            <span className={`text-[8px] font-black uppercase tracking-widest ${overdueInfo.overdue ? 'text-red-500' : 'text-amber-500'}`}>
+                              {overdueInfo.text}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-1 align-middle text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        {isHours && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-gray-400 hover:text-green-600 hover:bg-white hover:shadow-lg rounded-lg transition-all duration-300"
+                            onClick={() => window.open(`https://${isProduction ? ODOO_BASE_URL_PROD : ODOO_BASE_URL}/web#id=${item.equipmentId}&cids=1&menu_id=548&action=769&model=maintenance.equipment&view_type=form`, '_blank')}
+                            title="Registrar valor"
+                          >
+                            <Gauge className="h-3.5 w-3.5" />
+                          </Button>
+                        )}
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => setSelected(item)}
+                          className="h-7 w-7 text-gray-400 hover:text-blue-600 hover:bg-white hover:shadow-lg rounded-lg transition-all duration-300"
+                        >
+                          <Eye className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-gray-400 hover:text-orange-500 hover:bg-white hover:shadow-lg rounded-lg transition-all duration-300"
+                          onClick={() => window.open(`https://${isProduction ? ODOO_BASE_URL_PROD : ODOO_BASE_URL}/web?debug=1#id=${item.id}&cids=1&menu_id=502&action=766&active_id=14&model=maintenance.request&view_type=form`, '_blank')}
+                        >
+                          <ExternalLink className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  )
+
+  const renderGrid = (itemsToRender: RequestItem[]) => (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 animate-in fade-in slide-in-from-bottom-4 duration-500 mb-6">
+      {itemsToRender.map((item) => {
+        const overdueInfo = getOverdueInfo(item)
+        const colors = getItemColors(item.progress)
+        const unit = item.frequencyUnit?.toLowerCase()
+        const isHours = unit === 'hours' || unit === 'hour' || unit === 'horas' || unit === 'hora'
+
+        return (
+          <div
+            key={item.id}
+            className={`${colors.bg} rounded-[1.5rem] border ${colors.border} shadow-lg shadow-gray-200/10 p-5 flex flex-col h-full group hover:shadow-xl transition-all duration-500 hover:-translate-y-0.5`}
+          >
+            <div className="flex justify-between items-start mb-3">
+              <div className="flex space-x-0.5 text-amber-400">
+                {[...Array(item.priority)].map((_, i) => (
+                  <Star key={i} className="h-2.5 w-2.5 fill-current" />
+                ))}
+              </div>
+              {item.frequency && (
+                <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/50 border border-gray-100 shadow-sm">
+                  <Clock className="h-2 w-2 text-blue-500" />
+                  <span className="text-[8px] font-black text-blue-600 uppercase tracking-widest">
+                    {isHours && item.usedValue !== undefined ? `${item.usedValue} / ` : ''}{item.frequency}
+                  </span>
+                </div>
+              )}
+              <Badge className="bg-gray-50 text-gray-600 border-none px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest">
+                {item.stageName}
+              </Badge>
+            </div>
+
+            <h3 className="text-sm font-black text-gray-900 leading-tight mb-1 group-hover:text-blue-600 transition-colors line-clamp-2 min-h-[2.5rem]">
+              {item.name}
+            </h3>
+            <div className="flex items-center justify-between mb-4">
+              <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest truncate max-w-[60%]">
+                {item.teamName}
+              </p>
+              {item.requestDate && (
+                <div className="flex items-center gap-1 text-[9px] font-bold text-gray-400">
+                  <Calendar className="h-2.5 w-2.5" />
+                  <span>{item.requestDate.split(' ')[0].split('-').reverse().join('/')}</span>
+                </div>
+              )}
+            </div>
+
+            <div className="mt-auto space-y-3">
+              <div className="space-y-1.5">
+                <div className="flex justify-between items-end px-1">
+                  <span className="text-[8px] font-black text-gray-300 uppercase tracking-[.2em]">Prioridad Mantenimiento</span>
+                  <span className="text-[10px] font-black text-gray-900">{item.progress}%</span>
+                </div>
+                <Progress
+                  value={item.progress}
+                  className="h-2 rounded-full bg-gray-50 shadow-sm"
+                />
+              </div>
+
+              <div className="flex items-center justify-between pt-3 border-t border-gray-50">
+                {overdueInfo && !isHours && (
+                  <div className="flex items-center gap-1.5">
+                    <Clock className={`h-3 w-3 ${overdueInfo.overdue ? 'text-red-500 animate-pulse' : 'text-amber-500'}`} />
+                    <span className={`text-[9px] font-black uppercase tracking-widest ${overdueInfo.overdue ? 'text-red-500' : 'text-gray-900'}`}>
+                      {overdueInfo.text}
+                    </span>
+                  </div>
+                )}
+                <div className="flex gap-1.5 ml-auto">
+                  {isHours && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 text-gray-400 hover:text-green-600 hover:bg-blue-50 rounded-lg transition-all"
+                      onClick={() => window.open(`https://${isProduction ? ODOO_BASE_URL_PROD : ODOO_BASE_URL}/web#id=${item.equipmentId}&cids=1&menu_id=548&action=769&model=maintenance.equipment&view_type=form`, '_blank')}
+                      title="Registrar valor"
+                    >
+                      <Gauge className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setSelected(item)}
+                    className="h-7 w-7 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
+                  >
+                    <Eye className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 text-gray-400 hover:text-orange-500 hover:bg-orange-50 rounded-lg transition-all"
+                    onClick={() => window.open(`https://${isProduction ? ODOO_BASE_URL_PROD : ODOO_BASE_URL}/web?debug=1#id=${item.id}&cids=1&menu_id=502&action=766&active_id=14&model=maintenance.request&view_type=form`, '_blank')}
+                  >
+                    <ExternalLink className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  )
 
   if (loading && items.length === 0) {
     return (
@@ -362,191 +587,30 @@ export default function RequestsList() {
             <h3 className="text-xl font-bold text-gray-900">Sin resultados</h3>
             <p className="text-gray-500 mt-2">No hay solicitudes que coincidan con tus filtros.</p>
           </div>
-        ) : viewMode === 'list' ? (
-          <div className="bg-white rounded-[2.5rem] shadow-2xl shadow-gray-200/40 border border-gray-100 overflow-hidden transition-all duration-500">
-            <div className="bg-white border border-gray-100 rounded-[2.5rem] overflow-hidden shadow-sm">
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse min-w-[800px] md:min-w-0">
-                  <thead>
-                    <tr className="bg-gray-50/50 border-b border-gray-100">
-                      <th className="px-8 py-2 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Prioridad</th>
-                      <th className="px-6 py-2 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Solicitud</th>
-                      <th className="px-6 py-2 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Frecuencia</th>
-                      <th className="px-6 py-2 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Último Mant.</th>
-                      <th className="px-6 py-2 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Estado / Progreso</th>
-                      <th className="px-8 py-2 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] text-right">Acciones</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-50">
-                    {filteredItems.map((item) => {
-                      const overdueInfo = getOverdueInfo(item)
-                      const colors = getItemColors(item.progress)
-                      return (
-                        <tr key={item.id} className={`group ${colors.hover} transition-all duration-300 ${colors.bg}`}>
-                          <td className="px-8 py-1.5 align-middle">
-                            <div className="flex text-amber-400 space-x-0.5">
-                              {[...Array(item.priority)].map((_, i) => (
-                                <Star key={i} className="h-3.5 w-3.5 fill-current" />
-                              ))}
-                            </div>
-                          </td>
-                          <td className="px-6 py-1.5 align-middle">
-                            <h3 className="text-sm font-bold text-gray-900 group-hover:text-blue-600 transition-colors truncate max-w-[300px] lg:max-w-[500px] xl:max-w-none">
-                              {item.name}
-                            </h3>
-                          </td>
-                          <td className="px-6 py-1.5 align-middle">
-                            {item.frequency ? (
-                              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-50/50 border border-blue-100/50">
-                                <Clock className="h-3 w-3 text-blue-500" />
-                                <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest">
-                                  {item.frequency}
-                                </span>
-                              </div>
-                            ) : (
-                              <span className="text-[10px] font-bold text-gray-300 uppercase tracking-widest">Sin frecuencia</span>
-                            )}
-                          </td>
-                          <td className="px-6 py-1.5 align-middle">
-                            <div className="flex flex-col">
-                              <span className="text-[10px] font-bold text-gray-900 group-hover:text-blue-600 transition-colors">
-                                {item.requestDate ? item.requestDate.split(' ')[0].split('-').reverse().join('/') : '---'}
-                              </span>
-                            </div>
-                          </td>
-                          <td className="px-6 py-1.5 align-middle">
-                            <div className="flex items-center gap-4">
-                              <div className="w-24">
-                                <Progress
-                                  value={item.progress}
-                                  className="h-1.5 rounded-full bg-gray-100"
-                                />
-                              </div>
-                              <div className="flex flex-col min-w-[80px]">
-                                <span className="text-[10px] font-black text-gray-900">{item.progress}% • {item.stageName}</span>
-                                {overdueInfo && (
-                                  <span className={`text-[9px] font-black uppercase tracking-widest ${overdueInfo.overdue ? 'text-red-500' : 'text-amber-500'}`}>
-                                    {overdueInfo.text}
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                          </td>
-                          <td className="px-8 py-1.5 align-middle text-right">
-                            <div className="flex items-center justify-end gap-2">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => setSelected(item)}
-                                className="h-8 w-8 text-gray-400 hover:text-blue-600 hover:bg-white hover:shadow-lg rounded-xl transition-all duration-300"
-                              >
-                                <Eye className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 text-gray-400 hover:text-orange-500 hover:bg-white hover:shadow-lg rounded-xl transition-all duration-300"
-                                onClick={() => window.open(`https://${ODOO_BASE_URL}/web?debug=1#id=${item.id}&cids=1&menu_id=502&action=766&active_id=14&model=maintenance.request&view_type=form`, '_blank')}
-                              >
-                                <ExternalLink className="h-5 w-5" />
-                              </Button>
-                            </div>
-                          </td>
-                        </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            {filteredItems.map((item) => {
-              const overdueInfo = getOverdueInfo(item)
-              const colors = getItemColors(item.progress)
-              return (
-                <div
-                  key={item.id}
-                  className={`${colors.bg} rounded-[2.5rem] border ${colors.border} shadow-xl shadow-gray-200/20 p-8 flex flex-col h-full group hover:shadow-2xl transition-all duration-500 hover:-translate-y-1`}
-                >
-                  <div className="flex justify-between items-start mb-6">
-                    <div className="flex space-x-0.5 text-amber-400">
-                      {[...Array(item.priority)].map((_, i) => (
-                        <Star key={i} className="h-3 w-3 fill-current" />
-                      ))}
-                    </div>
-                    {item.frequency && (
-                      <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/50 border border-gray-100 shadow-sm">
-                        <Clock className="h-2.5 w-2.5 text-blue-500" />
-                        <span className="text-[9px] font-black text-blue-600 uppercase tracking-widest">{item.frequency}</span>
-                      </div>
-                    )}
-                    <Badge className="bg-gray-50 text-gray-600 border-none px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest">
-                      {item.stageName}
-                    </Badge>
-                  </div>
-
-                  <h3 className="text-lg font-black text-gray-900 leading-tight mb-2 group-hover:text-blue-600 transition-colors line-clamp-2 min-h-[3rem]">
-                    {item.name}
-                  </h3>
-                  <div className="flex items-center justify-between mb-8">
-                    <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-widest">
-                      {item.teamName}
-                    </p>
-                    {item.requestDate && (
-                      <div className="flex items-center gap-1 text-[10px] font-bold text-gray-400">
-                        <Calendar className="h-3 w-3" />
-                        <span>{item.requestDate.split(' ')[0].split('-').reverse().join('/')}</span>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="mt-auto space-y-6">
-                    <div className="space-y-2.5">
-                      <div className="flex justify-between items-end px-1">
-                        <span className="text-[9px] font-black text-gray-300 uppercase tracking-[.2em]">Prioridad Mantenimiento</span>
-                        <span className="text-xs font-black text-gray-900">{item.progress}%</span>
-                      </div>
-                      <Progress
-                        value={item.progress}
-                        className="h-2.5 rounded-full bg-gray-50 shadow-sm"
-                      />
-                    </div>
-
-                    <div className="flex items-center justify-between pt-6 border-t border-gray-50">
-                      {overdueInfo && (
-                        <div className="flex items-center gap-2">
-                          <Clock className={`h-4 w-4 ${overdueInfo.overdue ? 'text-red-500 animate-pulse' : 'text-amber-500'}`} />
-                          <span className={`text-[10px] font-black uppercase tracking-widest ${overdueInfo.overdue ? 'text-red-500' : 'text-gray-900'}`}>
-                            {overdueInfo.text}
-                          </span>
-                        </div>
-                      )}
-                      <div className="flex gap-2 ml-auto">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => setSelected(item)}
-                          className="h-9 w-9 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all"
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-9 w-9 text-gray-400 hover:text-orange-500 hover:bg-orange-50 rounded-xl transition-all"
-                          onClick={() => window.open(`https://${ODOO_BASE_URL}/web?debug=1#id=${item.id}&cids=1&menu_id=502&action=766&active_id=14&model=maintenance.request&view_type=form`, '_blank')}
-                        >
-                          <ExternalLink className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
+          <>
+            {hoursItems.length > 0 && (
+              <section className="mb-6">
+                <div className="flex items-center gap-2 mb-3 ml-2">
+                  <div className="h-6 w-1 bg-amber-500/50 rounded-full" />
+                  <h2 className="text-sm font-black text-gray-400 uppercase tracking-widest">Por Horas</h2>
+                  <span className="text-[10px] font-bold text-gray-300 bg-gray-100 px-1.5 py-0.5 rounded-md">{hoursItems.length}</span>
                 </div>
-              )
-            })}
-          </div>
+                {viewMode === 'list' ? renderList(hoursItems) : renderGrid(hoursItems)}
+              </section>
+            )}
+
+            {dateItems.length > 0 && (
+              <section className="mb-6">
+                <div className="flex items-center gap-2 mb-3 ml-2">
+                  <div className="h-6 w-1 bg-blue-500/50 rounded-full" />
+                  <h2 className="text-sm font-black text-gray-400 uppercase tracking-widest">Por Fecha</h2>
+                  <span className="text-[10px] font-bold text-gray-300 bg-gray-100 px-1.5 py-0.5 rounded-md">{dateItems.length}</span>
+                </div>
+                {viewMode === 'list' ? renderList(dateItems) : renderGrid(dateItems)}
+              </section>
+            )}
+          </>
         )}
 
         <Dialog open={!!selected} onOpenChange={(open) => !open && setSelected(null)}>
@@ -557,5 +621,4 @@ export default function RequestsList() {
       </div>
     </div>
   )
-
 }

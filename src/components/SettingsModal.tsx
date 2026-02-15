@@ -11,7 +11,7 @@ import { Settings } from 'lucide-react'
 export function SettingsModal() {
     const [open, setOpen] = useState(false)
     const [teams, setTeams] = useState<Team[]>([])
-    const { toggleTeam, isTeamSelected, refreshInterval, setRefreshInterval } = useFilter()
+    const { toggleTeam, isTeamSelected, refreshInterval, setRefreshInterval, isProduction, setIsProduction } = useFilter()
 
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
@@ -27,7 +27,7 @@ export function SettingsModal() {
 
     useEffect(() => {
         if (open && teams.length === 0) {
-            fetchTeams().then(setTeams).catch(console.error)
+            fetchTeams(isProduction).then(setTeams).catch(console.error)
         }
     }, [open, teams.length])
 
@@ -128,6 +128,38 @@ export function SettingsModal() {
                                     La información se actualizará cada {refreshInterval} {refreshInterval === 1 ? 'minuto' : 'minutos'}
                                 </p>
                             )}
+                        </div>
+                    </section>
+
+                    <section className="bg-gray-50 p-4 rounded-2xl border border-gray-100 shadow-inner">
+                        <div className="flex items-center gap-2 mb-4 text-blue-800">
+                            <div className="p-1.5 bg-blue-100 rounded-lg">
+                                <Settings className="h-4 w-4" />
+                            </div>
+                            <h3 className="text-sm font-bold uppercase tracking-widest">Entorno Odoo</h3>
+                        </div>
+
+                        <div className="flex items-center justify-between gap-4">
+                            <div className="flex flex-col">
+                                <span className="text-sm font-bold text-gray-900">Modo Producción</span>
+                                <span className="text-[10px] text-gray-500 font-medium">
+                                    {isProduction ? 'Conectado a rainforest.odoo.com' : 'Conectado a entorno de pruebas'}
+                                </span>
+                            </div>
+                            <button
+                                onClick={() => setIsProduction(!isProduction)}
+                                className={`
+                                    relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2
+                                    ${isProduction ? 'bg-green-500' : 'bg-gray-200'}
+                                `}
+                            >
+                                <span
+                                    className={`
+                                        inline-block h-4 w-4 transform rounded-full bg-white transition-transform shadow-sm
+                                        ${isProduction ? 'translate-x-6' : 'translate-x-1'}
+                                    `}
+                                />
+                            </button>
                         </div>
                     </section>
 
