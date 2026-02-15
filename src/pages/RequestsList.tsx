@@ -307,10 +307,7 @@ export default function RequestsList() {
                     <td className="px-5 py-1 align-middle">
                       <div className="flex items-center gap-3">
                         <div className="w-20">
-                          <Progress
-                            value={item.progress}
-                            className="h-1 rounded-full bg-gray-100"
-                          />
+                          <Progress value={item.progress ?? 0} className="h-2" />
                         </div>
                         <div className="flex flex-col min-w-[70px]">
                           <span className="text-[9px] font-black text-gray-900">{item.progress}% • {item.stageName}</span>
@@ -417,7 +414,7 @@ export default function RequestsList() {
                   <span className="text-[10px] font-black text-gray-900">{item.progress}%</span>
                 </div>
                 <Progress
-                  value={item.progress}
+                  value={item.progress ?? 0}
                   className="h-2 rounded-full bg-gray-50 shadow-sm"
                 />
               </div>
