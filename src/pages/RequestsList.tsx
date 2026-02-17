@@ -171,40 +171,33 @@ export default function RequestsList() {
         return selectedLocationIds.some(locId => lastNamePart === TEAM_KEYWORDS[locId])
       })
 
-    const now = Math.floor(Date.now() / 1000)
-
+    // Sort by progress percentage groups (red/orange/green), then by percentage within each group
     return [...teamsFiltered].sort((a, b) => {
-      const aDeadline = a.preventiveDate || a.scheduleDate || a.correctiveDate
-      const bDeadline = b.preventiveDate || b.scheduleDate || b.correctiveDate
-      const aEpoch = aDeadline ? toEpoch(aDeadline) : null
-      const bEpoch = bDeadline ? toEpoch(bDeadline) : null
+      const aProgress = a.progress ?? 0
+      const bProgress = b.progress ?? 0
 
-      if (aEpoch === null && bEpoch === null) return 0
-      if (aEpoch === null) return 1
-      if (bEpoch === null) return -1
+      // Determine color group based on progress percentage
+      // Group 0: Red (progress > 95)
+      // Group 1: Orange (progress > 85 and <= 95)
+      // Group 2: Green (progress <= 85)
+      const getColorGroup = (progress: number) => {
+        if (progress > 95) return 0 // Red
+        if (progress > 85) return 1 // Orange
+        return 2 // Green
+      }
 
-      const aDiff = aEpoch - now
-      const bDiff = bEpoch - now
+      const aGroup = getColorGroup(aProgress)
+      const bGroup = getColorGroup(bProgress)
 
-      const aOverdue = aDiff < 0
-      const bOverdue = bDiff < 0
+      // First sort by color group (red, orange, green)
+      if (aGroup !== bGroup) return aGroup - bGroup
 
-      if (aOverdue && !bOverdue) return -1
-      if (!aOverdue && bOverdue) return 1
-
-      return aDiff - bDiff
+      // Within same group, sort by progress percentage (highest first)
+      return bProgress - aProgress
     })
   }, [items, selectedTeamIds])
 
-  const hoursItems = filteredItems.filter(item => {
-    const unit = item.frequencyUnit?.toLowerCase()
-    return unit === 'hours' || unit === 'hour' || unit === 'horas' || unit === 'hora'
-  })
 
-  const dateItems = filteredItems.filter(item => {
-    const unit = item.frequencyUnit?.toLowerCase()
-    return !(unit === 'hours' || unit === 'hour' || unit === 'horas' || unit === 'hora')
-  })
 
   const getOverdueInfo = (item: RequestItem) => {
     const deadline = item.preventiveDate || item.scheduleDate || item.correctiveDate
@@ -585,29 +578,14 @@ export default function RequestsList() {
             <p className="text-gray-500 mt-2">No hay solicitudes que coincidan con tus filtros.</p>
           </div>
         ) : (
-          <>
-            {hoursItems.length > 0 && (
-              <section className="mb-6">
-                <div className="flex items-center gap-2 mb-3 ml-2">
-                  <div className="h-6 w-1 bg-amber-500/50 rounded-full" />
-                  <h2 className="text-sm font-black text-gray-400 uppercase tracking-widest">Por Horas</h2>
-                  <span className="text-[10px] font-bold text-gray-300 bg-gray-100 px-1.5 py-0.5 rounded-md">{hoursItems.length}</span>
-                </div>
-                {viewMode === 'list' ? renderList(hoursItems) : renderGrid(hoursItems)}
-              </section>
-            )}
-
-            {dateItems.length > 0 && (
-              <section className="mb-6">
-                <div className="flex items-center gap-2 mb-3 ml-2">
-                  <div className="h-6 w-1 bg-blue-500/50 rounded-full" />
-                  <h2 className="text-sm font-black text-gray-400 uppercase tracking-widest">Por Fecha</h2>
-                  <span className="text-[10px] font-bold text-gray-300 bg-gray-100 px-1.5 py-0.5 rounded-md">{dateItems.length}</span>
-                </div>
-                {viewMode === 'list' ? renderList(dateItems) : renderGrid(dateItems)}
-              </section>
-            )}
-          </>
+          <section className="mb-6">
+            <div className="flex items-center gap-2 mb-3 ml-2">
+              <div className="h-6 w-1 bg-blue-500/50 rounded-full" />
+              <h2 className="text-sm font-black text-gray-400 uppercase tracking-widest">Todas las Solicitudes</h2>
+              <span className="text-[10px] font-bold text-gray-300 bg-gray-100 px-1.5 py-0.5 rounded-md">{filteredItems.length}</span>
+            </div>
+            {viewMode === 'list' ? renderList(filteredItems) : renderGrid(filteredItems)}
+          </section>
         )}
 
         <Dialog open={!!selected} onOpenChange={(open) => !open && setSelected(null)}>
