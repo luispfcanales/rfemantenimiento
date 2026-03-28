@@ -3,7 +3,7 @@ export type Team = {
   name: string
 }
 
-export const ODOO_BASE_URL = 'rainforest-uat-ra-090226-28435160.dev.odoo.com'
+export const ODOO_BASE_URL = 'rainforest-uat-ra-240326-30078958.dev.odoo.com'
 export const ODOO_BASE_URL_PROD = 'rainforest.odoo.com'
 
 export const TEAM_NAME_MAP: Record<number, string> = {
@@ -110,7 +110,7 @@ export async function fetchRequests(isProduction: boolean = false): Promise<Requ
       const isHours = unit === 'hours' || unit === 'hour' || unit === 'horas' || unit === 'hora'
 
       if (isHours && r.used_value !== undefined && recurrenceValue) {
-        progress = Math.min(100, Math.round((r.used_value / recurrenceValue) * 100))
+        progress = Math.min(100, parseFloat(((r.used_value / recurrenceValue) * 100).toFixed(2)))
       } else {
         const now = Math.floor(Date.now() / 1000)
         // Start date: request_date preferred, then corrective_date
@@ -127,7 +127,7 @@ export async function fetchRequests(isProduction: boolean = false): Promise<Requ
           if (targetDateEpoch > startDateEpoch) {
             const elapsed = Math.max(0, now - startDateEpoch)
             const totalDuration = targetDateEpoch - startDateEpoch
-            progress = Math.min(100, Math.round((elapsed / totalDuration) * 100))
+            progress = Math.min(100, parseFloat(((elapsed / totalDuration) * 100).toFixed(2)))
           } else if (now >= targetDateEpoch) {
             progress = 100
           }

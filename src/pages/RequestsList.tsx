@@ -3,7 +3,7 @@ import { fetchRequests, toEpoch, ODOO_BASE_URL, ODOO_BASE_URL_PROD } from '../li
 import type { RequestItem } from '../lib/api'
 import { Eye, Star, ExternalLink, LayoutGrid, List as ListIcon, AlertCircle, Clock, Calendar, Gauge } from 'lucide-react'
 import { Badge } from '../components/ui/badge'
-import { Button } from '../components/ui/button'
+import { Button, buttonVariants } from '../components/ui/button'
 import { Dialog, DialogContent } from '../components/ui/dialog'
 import { Progress } from '../components/ui/progress'
 import { useFilter } from '../context/FilterContext'
@@ -83,6 +83,7 @@ export default function RequestsList() {
   const [lastUpdated, setLastUpdated] = useState<Date | null>(new Date())
   const [timeRemaining, setTimeRemaining] = useState<number>(0)
   const { selectedTeamIds, refreshInterval, isProduction } = useFilter()
+  const ODOO_URL = `https://${isProduction ? ODOO_BASE_URL_PROD : ODOO_BASE_URL}`
 
   const loadData = (showOverlay = true) => {
     if (showOverlay) {
@@ -315,32 +316,38 @@ export default function RequestsList() {
                     <td className="px-6 py-1 align-middle text-right">
                       <div className="flex items-center justify-end gap-1">
                         {isHours && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7 text-gray-400 hover:text-green-600 hover:bg-white hover:shadow-lg rounded-lg transition-all duration-300"
-                            onClick={() => window.open(`https://${isProduction ? ODOO_BASE_URL_PROD : ODOO_BASE_URL}/web#id=${item.equipmentId}&cids=1&menu_id=548&action=769&model=maintenance.equipment&view_type=form`, '_blank')}
+                          <a
+                            href={`${ODOO_URL}/web#id=${item.equipmentId}&cids=1&menu_id=548&action=769&model=maintenance.equipment&view_type=form`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={buttonVariants({ variant: 'ghost', size: 'icon' }) + " h-7 w-7 text-gray-400 hover:text-green-600 hover:bg-white hover:shadow-lg rounded-lg transition-all duration-300"}
+                            onClick={(e) => e.stopPropagation()}
                             title="Registrar valor"
                           >
                             <Gauge className="h-3.5 w-3.5" />
-                          </Button>
+                          </a>
                         )}
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={() => setSelected(item)}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setSelected(item)
+                          }}
                           className="h-7 w-7 text-gray-400 hover:text-blue-600 hover:bg-white hover:shadow-lg rounded-lg transition-all duration-300"
                         >
                           <Eye className="h-3.5 w-3.5" />
                         </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7 text-gray-400 hover:text-orange-500 hover:bg-white hover:shadow-lg rounded-lg transition-all duration-300"
-                          onClick={() => window.open(`https://${isProduction ? ODOO_BASE_URL_PROD : ODOO_BASE_URL}/web?debug=1#id=${item.id}&cids=1&menu_id=502&action=766&active_id=14&model=maintenance.request&view_type=form`, '_blank')}
+                        <a
+                          href={`${ODOO_URL}/web?debug=1#id=${item.id}&cids=1&menu_id=502&action=766&active_id=14&model=maintenance.request&view_type=form`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className={buttonVariants({ variant: 'ghost', size: 'icon' }) + " h-7 w-7 text-gray-400 hover:text-orange-500 hover:bg-white hover:shadow-lg rounded-lg transition-all duration-300"}
+                          onClick={(e) => e.stopPropagation()}
+                          title="Abrir en Odoo"
                         >
                           <ExternalLink className="h-3.5 w-3.5" />
-                        </Button>
+                        </a>
                       </div>
                     </td>
                   </tr>
@@ -423,32 +430,38 @@ export default function RequestsList() {
                 )}
                 <div className="flex gap-1.5 ml-auto">
                   {isHours && (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7 text-gray-400 hover:text-green-600 hover:bg-blue-50 rounded-lg transition-all"
-                      onClick={() => window.open(`https://${isProduction ? ODOO_BASE_URL_PROD : ODOO_BASE_URL}/web#id=${item.equipmentId}&cids=1&menu_id=548&action=769&model=maintenance.equipment&view_type=form`, '_blank')}
+                    <a
+                      href={`${ODOO_URL}/web#id=${item.equipmentId}&cids=1&menu_id=548&action=769&model=maintenance.equipment&view_type=form`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={buttonVariants({ variant: 'ghost', size: 'icon' }) + " h-7 w-7 text-gray-400 hover:text-green-600 hover:bg-blue-50 rounded-lg transition-all"}
+                      onClick={(e) => e.stopPropagation()}
                       title="Registrar valor"
                     >
                       <Gauge className="h-3.5 w-3.5" />
-                    </Button>
+                    </a>
                   )}
                   <Button
                     variant="ghost"
                     size="icon"
-                    onClick={() => setSelected(item)}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setSelected(item)
+                    }}
                     className="h-7 w-7 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
                   >
                     <Eye className="h-3.5 w-3.5" />
                   </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-7 w-7 text-gray-400 hover:text-orange-500 hover:bg-orange-50 rounded-lg transition-all"
-                    onClick={() => window.open(`https://${isProduction ? ODOO_BASE_URL_PROD : ODOO_BASE_URL}/web?debug=1#id=${item.id}&cids=1&menu_id=502&action=766&active_id=14&model=maintenance.request&view_type=form`, '_blank')}
+                  <a
+                    href={`${ODOO_URL}/web?debug=1#id=${item.id}&cids=1&menu_id=502&action=766&active_id=14&model=maintenance.request&view_type=form`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={buttonVariants({ variant: 'ghost', size: 'icon' }) + " h-7 w-7 text-gray-400 hover:text-orange-500 hover:bg-orange-50 rounded-lg transition-all"}
+                    onClick={(e) => e.stopPropagation()}
+                    title="Abrir en Odoo"
                   >
                     <ExternalLink className="h-3.5 w-3.5" />
-                  </Button>
+                  </a>
                 </div>
               </div>
             </div>
@@ -497,14 +510,40 @@ export default function RequestsList() {
             <div className="h-10 w-10 rounded-full bg-emerald-500 flex items-center justify-center text-white font-black text-sm shadow-inner shadow-black/10">
               L
             </div>
-            <h1 className="text-2xl font-black text-gray-900 tracking-tight">Bandeja de entrada</h1>
+            <div className="flex items-center gap-3">
+              <h1 className="text-2xl font-black text-gray-900 tracking-tight">Mantenimiento</h1>
+              <div
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border shadow-sm transition-all duration-500 ${isProduction
+                  ? 'bg-red-50 border-red-100 text-red-600 shadow-red-100/50'
+                  : 'bg-blue-50 border-blue-100 text-blue-600 shadow-blue-100/50'
+                  }`}
+              >
+                <span className={`h-1.5 w-1.5 rounded-full ${isProduction ? 'bg-red-500 animate-pulse' : 'bg-blue-500'}`} />
+                <span className="text-[10px] font-black uppercase tracking-widest">
+                  {isProduction ? 'Producción' : 'Desarrollo'}
+                </span>
+              </div>
+            </div>
           </div>
         </div>
       </header>
 
       <header className="hidden md:flex flex-col md:flex-row md:items-end justify-between gap-6 pb-6 border-b border-gray-100">
         <div className="space-y-1">
-          <h1 className="text-3xl font-black text-gray-900 tracking-tight">Mantenimiento</h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-3xl font-black text-gray-900 tracking-tight">Mantenimiento</h1>
+            <div
+              className={`flex items-center gap-2 px-4 py-1.5 rounded-full border shadow-sm transition-all duration-500 ${isProduction
+                ? 'bg-red-50 border-red-100 text-red-600 shadow-red-100/50'
+                : 'bg-blue-50 border-blue-100 text-blue-600 shadow-blue-100/50'
+                }`}
+            >
+              <span className={`h-2 w-2 rounded-full ${isProduction ? 'bg-red-500 animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.5)]' : 'bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]'}`} />
+              <span className="text-[11px] font-black uppercase tracking-[0.1em]">
+                {isProduction ? 'Producción' : 'Desarrollo'}
+              </span>
+            </div>
+          </div>
           <p className="text-gray-500 text-sm font-medium flex items-center gap-2">
             <span className="inline-flex h-2 w-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]" />
             {filteredItems.length} solicitudes activas
