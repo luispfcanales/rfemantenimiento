@@ -3,8 +3,7 @@ export type Team = {
   name: string
 }
 
-export const ODOO_BASE_URL = 'rainforest-uat-ra-240326-30078958.dev.odoo.com'
-export const ODOO_BASE_URL_PROD = 'rainforest.odoo.com'
+export const ODOO_BASE_URL = 'rainforest.odoo.com'
 
 export const TEAM_NAME_MAP: Record<number, string> = {
   14: 'REFUGIO',
@@ -60,9 +59,9 @@ export type RequestItem = {
   archive: boolean
 }
 
-export async function fetchRequests(isProduction: boolean = false): Promise<RequestItem[]> {
+export async function fetchRequests(): Promise<RequestItem[]> {
   const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8080/api/mantenimiento/requests'
-  const apiUrl = isProduction ? `${baseUrl}?base=prod` : baseUrl
+  const apiUrl = `${baseUrl}?base=prod`
   const res = await fetch(apiUrl)
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
   const data: unknown = await res.json()
@@ -159,9 +158,9 @@ export async function fetchRequests(isProduction: boolean = false): Promise<Requ
   }
   return items
 }
-export async function fetchTeams(isProduction: boolean = false): Promise<Team[]> {
+export async function fetchTeams(): Promise<Team[]> {
   const baseUrl = (import.meta.env.VITE_API_URL || 'http://localhost:8080/api/mantenimiento/requests').replace('/requests', '/teams')
-  const apiUrl = isProduction ? `${baseUrl}?base=prod` : baseUrl
+  const apiUrl = `${baseUrl}?base=prod`
   const res = await fetch(apiUrl)
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
   const data: unknown = await res.json()

@@ -6,8 +6,6 @@ type FilterContextType = {
     isTeamSelected: (id: number) => boolean
     refreshInterval: number // in minutes, 0 means off
     setRefreshInterval: (minutes: number) => void
-    isProduction: boolean
-    setIsProduction: (isProd: boolean) => void
 }
 
 const FilterContext = createContext<FilterContextType | undefined>(undefined)
@@ -15,10 +13,6 @@ const FilterContext = createContext<FilterContextType | undefined>(undefined)
 export const FilterProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [selectedTeamIds, setSelectedTeamIds] = useState<Set<number>>(new Set())
     const [refreshInterval, setRefreshInterval] = useState<number>(0)
-    const [isProduction, setIsProduction] = useState<boolean>(() => {
-        const saved = localStorage.getItem('isProduction')
-        return saved === null ? true : saved === 'true'
-    })
 
     // Load from localStorage on mount
     useEffect(() => {
@@ -52,10 +46,6 @@ export const FilterProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         localStorage.setItem('refreshInterval', refreshInterval.toString())
     }, [refreshInterval])
 
-    useEffect(() => {
-        localStorage.setItem('isProduction', String(isProduction))
-    }, [isProduction])
-
     const toggleTeam = (id: number) => {
         setSelectedTeamIds((prev) => {
             const next = new Set(prev)
@@ -71,7 +61,7 @@ export const FilterProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const isTeamSelected = (id: number) => selectedTeamIds.has(id)
 
     return (
-        <FilterContext.Provider value={{ selectedTeamIds, toggleTeam, isTeamSelected, refreshInterval, setRefreshInterval, isProduction, setIsProduction }}>
+        <FilterContext.Provider value={{ selectedTeamIds, toggleTeam, isTeamSelected, refreshInterval, setRefreshInterval }}>
             {children}
         </FilterContext.Provider>
     )

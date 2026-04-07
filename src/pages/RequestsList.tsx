@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from 'react'
-import { fetchRequests, toEpoch, ODOO_BASE_URL, ODOO_BASE_URL_PROD } from '../lib/api'
+import { fetchRequests, toEpoch, ODOO_BASE_URL } from '../lib/api'
 import type { RequestItem } from '../lib/api'
 import { Eye, Star, ExternalLink, LayoutGrid, List as ListIcon, AlertCircle, Clock, Calendar, Gauge } from 'lucide-react'
 import { Badge } from '../components/ui/badge'
@@ -82,8 +82,8 @@ export default function RequestsList() {
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [lastUpdated, setLastUpdated] = useState<Date | null>(new Date())
   const [timeRemaining, setTimeRemaining] = useState<number>(0)
-  const { selectedTeamIds, refreshInterval, isProduction } = useFilter()
-  const ODOO_URL = `https://${isProduction ? ODOO_BASE_URL_PROD : ODOO_BASE_URL}`
+  const { selectedTeamIds, refreshInterval } = useFilter()
+  const ODOO_URL = `https://${ODOO_BASE_URL}`
 
   const loadData = (showOverlay = true) => {
     if (showOverlay) {
@@ -92,7 +92,7 @@ export default function RequestsList() {
       setIsRefreshing(true)
     }
 
-    fetchRequests(isProduction)
+    fetchRequests()
       .then((data) => {
         setItems(data)
         setError(null)
@@ -512,17 +512,6 @@ export default function RequestsList() {
             </div>
             <div className="flex items-center gap-3">
               <h1 className="text-2xl font-black text-gray-900 tracking-tight">Mantenimiento</h1>
-              <div
-                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border shadow-sm transition-all duration-500 ${isProduction
-                  ? 'bg-red-50 border-red-100 text-red-600 shadow-red-100/50'
-                  : 'bg-blue-50 border-blue-100 text-blue-600 shadow-blue-100/50'
-                  }`}
-              >
-                <span className={`h-1.5 w-1.5 rounded-full ${isProduction ? 'bg-red-500 animate-pulse' : 'bg-blue-500'}`} />
-                <span className="text-[10px] font-black uppercase tracking-widest">
-                  {isProduction ? 'Producción' : 'Desarrollo'}
-                </span>
-              </div>
             </div>
           </div>
         </div>
@@ -532,17 +521,6 @@ export default function RequestsList() {
         <div className="space-y-1">
           <div className="flex items-center gap-3">
             <h1 className="text-3xl font-black text-gray-900 tracking-tight">Mantenimiento</h1>
-            <div
-              className={`flex items-center gap-2 px-4 py-1.5 rounded-full border shadow-sm transition-all duration-500 ${isProduction
-                ? 'bg-red-50 border-red-100 text-red-600 shadow-red-100/50'
-                : 'bg-blue-50 border-blue-100 text-blue-600 shadow-blue-100/50'
-                }`}
-            >
-              <span className={`h-2 w-2 rounded-full ${isProduction ? 'bg-red-500 animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.5)]' : 'bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]'}`} />
-              <span className="text-[11px] font-black uppercase tracking-[0.1em]">
-                {isProduction ? 'Producción' : 'Desarrollo'}
-              </span>
-            </div>
           </div>
           <p className="text-gray-500 text-sm font-medium flex items-center gap-2">
             <span className="inline-flex h-2 w-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]" />
